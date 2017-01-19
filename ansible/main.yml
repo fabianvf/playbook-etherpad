@@ -7,39 +7,63 @@
   # Uncomment below if not using root
   #sudo: yes
   tasks:
+  - name: Install dumb init
+    get_url:
+      dest: /usr/bin/dumb-init
+      url: https://github.com/Yelp/dumb-init/releases/download/v1.0.2/dumb-init_1.0.2_amd64
+      mode: 0775
+      validate_certs: no
+
+  - name: Add nginx repo
+    copy:
+      content: |
+        [nginx]
+        name=nginx repo
+        baseurl=http://nginx.org/packages/centos/7/$basearch/
+        gpgcheck=0
+        enabled=1
+      dest: /etc/yum.repos.d/nginx.repo
+
+  - name: Add mysql repo
+    copy:
+      content: |
+        [mysql57-community]
+        name=MySQL 5.7 Community Server
+        baseurl=http://repo.mysql.com/yum/mysql-5.7-community/el/6/$basearch/
+        enabled=1
+        gpgcheck=0
+      dest: /etc/yum.repos.d/mysql.repo
 
   - name: Install required software packages
-    apt: pkg=$item state=installed update_cache=yes
+    package: name={{ item }} state=installed 
+    with_items:
+      - epel-release
+  - name: Install required software packages
+    package: name={{ item }} state=installed 
     with_items:
     - git
-    - mysql-server
-    - mysql-client
-    - python-mysqldb
-    - abiword
+    - gcc
+    - mysql-community-server
+    - mysql-community-client
+    - libabw
     - curl
-
-  - name: install python-software-properties
-    apt: pkg=python-software-properties state=installed
-
-  - name: add nodejs ppa repository
-    apt_repository: repo=ppa:chris-lea/node.js
-
-  - name: install nodejs
-    apt: pkg=$item state=installed update_cache=yes
-    with_items:
     - nodejs
+    - nginx
+    - python-devel
+    - python-pip
+    - mysql-devel
 
-  - name: add nginx ppa repository
-    apt_repository: repo=ppa:nginx/stable
+  - name: install mysql
+    command: pip install mysql-python
 
-  - name: install nginx
-    apt: pkg=nginx state=installed update_cache=yes
+#  - name: start mysql
+#    command: dumb-init /etc/rc.d/init.d/mysqld start
 
-  - name: create etherpad-lite database
-    mysql_db: name={{ db_name }} encoding=utf8 state=present
-
-  - name: create etherpad-lite mysql user
-    mysql_user: name={{ db_user }} password={{ db_password }} priv={{ db_name }}.*:ALL state=present
+#  - name: create etherpad-lite database
+#    mysql_db: name={{ db_name }} encoding=utf8 state=present
+#
+#  - name: create etherpad-lite mysql user
+#    mysql_user: name={{ db_user }} password={{ db_password }} priv={{ db_name }}.*:ALL state=present
 
   - name: create etherpad-lite user
     user: name=etherpad-lite shell=/bin/bash
@@ -66,10 +90,10 @@
   - name: update permissions for etherpad-lite directory
     file: path=/opt/etherpad-lite owner=etherpad-lite group=etherpad-lite recurse=yes state=directory
 
+  - name: make folder
+    command: mkdir -p /etc/nginx/sites-available
   - name: configure nginx to forward http traffic to etherpad-lite
     template: src=templates/etc_nginx_sites-available_default.j2 dest=/etc/nginx/sites-available/default
-    notify:
-    - restart nginx
 
   - name: stop nginx
     service: name=nginx state=stopped

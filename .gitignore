@@ -16,3 +16,7 @@ Icon
 .Trashes
 
 
+*.log
+*.retry
+ansible/roles/*
+ansible/shipit-*.yml

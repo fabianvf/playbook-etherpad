@@ -48,6 +48,7 @@
   - name: initialize mysql
     remote_user: mysql
     command: mysqld --initialize-insecure
+    ignore_errors: true
 
   - name: start mysqld
     remote_user: mysql
@@ -56,9 +57,18 @@
 
   - name: create etherpad-lite database
     mysql_db: name={{ db_name }} encoding=utf8 state=present
+    ignore_errors: true
 
   - name: create etherpad-lite mysql user
     mysql_user: name={{ db_user }} password={{ db_password }} priv={{ db_name }}.*:ALL state=present
+    ignore_errors: true
+
+  - name: make mysql super insecure
+    copy:
+      content: |
+        [mysqld]
+        skip-grant-tables
+      dest: /etc/my.cnf
 
 - hosts: etherpad
   user: root
@@ -114,23 +124,5 @@
     with_items:
     - nginx
 
-  - name: make sites-available directory
-    command: mkdir -p /etc/nginx/sites-available
-
   - name: configure nginx to forward http traffic to etherpad-lite
-    template: src=templates/etc_nginx_sites-available_default.j2 dest=/etc/nginx/sites-available/default
-
-  # - name: stop nginx
-  #   service: name=nginx state=stopped
-
-# - hosts: etherpad
-#   user: root
-#   tasks:
-#   - name: stop etherpad-lite
-#     service: name=etherpad-lite state=stopped
-
-# - hosts: mariadb
-#   user: root
-#   tasks:
-#   - name: stop mariadb
-#     service: name=mysqld state=stopped
+    template: src=templates/etc_nginx_sites-available_default.j2 dest=/etc/nginx/conf.d/default.conf

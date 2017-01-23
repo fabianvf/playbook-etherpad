@@ -1,6 +1,6 @@
 db_name: etherpadlite
 db_user: etherpadlite
-db_host: 172.30.12.236
+db_host: mariadb
 db_password: password
 session_key: "LongKeyHereAtLeast10Chars"
 padadmin_password: adminpwd
